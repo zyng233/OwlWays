@@ -1,0 +1,388 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+from datetime import datetime, timedelta
+import urllib.parse
+import os
+
+from tools import fetch_flights, predict_price_range, decide_recommendation, get_price_history, get_future_predictions, get_market_alerts, get_booking_insights, USE_REAL_DATA
+from agents import BedrockAgent
+
+# Page config
+st.set_page_config(
+    page_title="AI Travel Assistant",
+    page_icon="✈️",
+    layout="wide"
+)
+
+# Custom CSS for background and centered logo
+st.markdown("""
+<style>
+.main {
+    background: white;
+    color: #333;
+}
+.stApp {
+    background: white;
+}
+.logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
+    background: white;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.search-container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    margin: 20px 0;
+    color: #333;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.results-container {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+    color: #333;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 15px 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+.flight-card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 10px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #667eea;
+}
+.metric-card {
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 8px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Initialize agent
+@st.cache_resource
+def init_agent():
+    return BedrockAgent()
+
+agent = init_agent()
+
+# Centered logo container
+st.markdown("""
+<div class="logo-container">
+    <div style="text-align: center;">
+        <img src="data:image/png;base64,{}" width="300" style="max-width: 100%; height: auto;">
+        <h2 style="color: #333; margin-top: 15px; font-weight: 300;">AI Travel Assistant</h2>
+        <p style="color: #666; margin: 10px 0;">Get smart flight recommendations powered by AI</p>
+    </div>
+</div>
+""".format(
+    "" if not os.path.exists('images/logo.png') else 
+    __import__('base64').b64encode(open('images/logo.png', 'rb').read()).decode()
+) if os.path.exists('images/logo.png') else """
+<div class="logo-container">
+    <div style="text-align: center;">
+        <h1 style="color: #333; margin: 0; font-size: 3em;">✈️</h1>
+        <h2 style="color: #333; margin-top: 15px; font-weight: 300;">AI Travel Assistant</h2>
+        <p style="color: #666; margin: 10px 0;">Get smart flight recommendations powered by AI</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Flight search form in styled container
+st.markdown('<div class="search-container">', unsafe_allow_html=True)
+st.markdown("<h3 style='color: #333; text-align: center; margin-bottom: 25px;'>Flight Search</h3>", unsafe_allow_html=True)
+
+# Airport options
+airports = {
+    "SIN - Singapore Changi": "SIN",
+    "JFK - New York JFK": "JFK", 
+    "LAX - Los Angeles": "LAX",
+    "LHR - London Heathrow": "LHR",
+    "NRT - Tokyo Narita": "NRT",
+    "DXB - Dubai International": "DXB",
+    "CDG - Paris Charles de Gaulle": "CDG",
+    "ICN - Seoul Incheon": "ICN",
+    "BKK - Bangkok Suvarnabhumi": "BKK",
+    "KUL - Kuala Lumpur": "KUL",
+    "CGK - Jakarta": "CGK",
+    "MNL - Manila": "MNL",
+    "HKG - Hong Kong": "HKG",
+    "TPE - Taipei Taoyuan": "TPE",
+    "SYD - Sydney": "SYD",
+    "MEL - Melbourne": "MEL",
+    "PER - Perth": "PER",
+    "BNE - Brisbane": "BNE",
+    "AKL - Auckland": "AKL",
+    "FRA - Frankfurt": "FRA",
+    "AMS - Amsterdam": "AMS",
+    "ZUR - Zurich": "ZUR",
+    "MUC - Munich": "MUC",
+    "FCO - Rome": "FCO",
+    "MAD - Madrid": "MAD",
+    "BCN - Barcelona": "BCN",
+    "IST - Istanbul": "IST",
+    "DOH - Doha": "DOH",
+    "AUH - Abu Dhabi": "AUH",
+    "BOM - Mumbai": "BOM",
+    "DEL - New Delhi": "DEL",
+    "BLR - Bangalore": "BLR",
+    "PVG - Shanghai": "PVG",
+    "PEK - Beijing": "PEK",
+    "CAN - Guangzhou": "CAN",
+    "YVR - Vancouver": "YVR",
+    "YYZ - Toronto": "YYZ",
+    "ORD - Chicago": "ORD",
+    "ATL - Atlanta": "ATL",
+    "DFW - Dallas": "DFW",
+    "SEA - Seattle": "SEA",
+    "SFO - San Francisco": "SFO",
+    "MIA - Miami": "MIA",
+    "BOS - Boston": "BOS",
+    "EWR - Newark": "EWR",
+    "GRU - São Paulo": "GRU",
+    "GIG - Rio de Janeiro": "GIG",
+    "EZE - Buenos Aires": "EZE",
+    "SCL - Santiago": "SCL",
+    "LIM - Lima": "LIM",
+    "BOG - Bogotá": "BOG",
+    "MEX - Mexico City": "MEX",
+    "CUN - Cancún": "CUN"
+}
+
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    origin_selection = st.selectbox("From", list(airports.keys()), index=0)
+    origin = airports[origin_selection]
+with col2:
+    destination_selection = st.selectbox("To", list(airports.keys()), index=1)
+    destination = airports[destination_selection]
+with col3:
+    departure_date = st.date_input(
+        "Departure Date",
+        value=datetime.now() + timedelta(days=30),
+        min_value=datetime.now().date()
+    )
+with col4:
+    budget = st.number_input("Budget (SGD)", min_value=100, max_value=5000, value=800, step=50)
+
+col1, col2, col3 = st.columns([1, 1, 2])
+with col1:
+    flexibility = st.slider("Date Flexibility (± days)", 0, 7, 3)
+with col3:
+    search_button = st.button("🔍 Search Flights", type="primary", use_container_width=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Results section
+if search_button and origin and destination:
+    st.markdown('<div class="results-container">', unsafe_allow_html=True)
+    with st.spinner("Analyzing flights and market data..."):
+        # Fetch data
+        flight_data = fetch_flights(origin, destination, departure_date)
+        price_history = get_price_history(origin, destination)
+        
+        if not flight_data['flights']:
+            st.error(f"No flights found for {origin} → {destination}")
+            st.info("Try popular routes like JFK-LAX or LAX-JFK")
+        else:
+            # Analysis
+            cheapest_price = flight_data['flights'][0]['price']
+            price_stats = predict_price_range(price_history, cheapest_price)
+            recommendation = decide_recommendation(cheapest_price, price_stats, budget)
+            
+            # Get advanced predictions and insights
+            future_predictions = get_future_predictions(origin, destination)
+            booking_insights = get_booking_insights(origin, destination)
+            market_alerts = get_market_alerts([f"{origin}-{destination}"], budget)
+            
+            user_context = {
+                'origin': origin,
+                'destination': destination, 
+                'budget': budget,
+                'date': departure_date.strftime('%Y-%m-%d'),
+                'future_trend': future_predictions.get('trend', 'stable'),
+                'booking_insights': booking_insights
+            }
+            
+            explanation = agent.generate_explanation(
+                flight_data, price_stats, recommendation, user_context
+            )
+            
+            # Recommendation card
+            decision_color = {
+                "BUY NOW": "🟢",
+                "BUY": "🟡", 
+                "WAIT": "🟠",
+                "ALTERNATE": "🔴"
+            }
+            
+            st.markdown(f"""
+            <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
+                <h3 style="margin: 0 0 15px 0;">{decision_color.get(recommendation['decision'], '⚪')} {recommendation['decision']}</h3>
+                <p style="font-size: 16px; margin: 10px 0; opacity: 0.9;">{explanation}</p>
+                <p style="margin: 0;"><strong>Confidence:</strong> {recommendation['confidence']:.0%}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Results layout
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                # Flight results
+                st.subheader("Available Flights")
+                
+                for idx, flight in enumerate(flight_data['flights'][:5]):
+                    st.markdown(f"""
+                    <div class="flight-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div style="flex: 2; min-width: 200px;">
+                                <h4 style="margin: 0; color: #333;">{flight['airline']}</h4>
+                                <p style="margin: 5px 0; color: #666;">{flight['departure_time']} → {flight['arrival_time']}</p>
+                                <small style="color: #888;">Duration: {flight['duration']}</small>
+                            </div>
+                            <div style="flex: 1; text-align: center; min-width: 120px;">
+                                <h3 style="margin: 0; color: {'green' if flight['price'] <= budget else 'red'};">S${flight['price']}</h3>
+                                <span style="font-size: 12px; color: #666;">{'Great Deal!' if flight['price'] <= price_stats['q10'] else 'Good Price' if flight['price'] <= price_stats['q50'] else 'High Price'}</span>
+                            </div>
+                            <div style="flex: 0 0 auto; min-width: 80px;">
+                                <a href="https://www.google.com/flights?q={origin}+{destination}+{departure_date}" target="_blank" 
+                                   style="background: #667eea; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px;">Book</a>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            with col2:
+                # Price analysis
+                st.subheader("Price Analysis")
+                
+                # Stats in cards
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h4 style="margin: 0 0 5px 0; color: #333;">Budget</h4>
+                    <h3 style="margin: 0; color: #667eea;">S${budget}</h3>
+                </div>
+                <div class="metric-card">
+                    <h4 style="margin: 0 0 5px 0; color: #333;">Cheapest Flight</h4>
+                    <h3 style="margin: 0; color: #667eea;">S${cheapest_price}</h3>
+                    <small style="color: #666;">{'Within budget' if cheapest_price <= budget else f'S${cheapest_price - budget} over budget'}</small>
+                </div>
+                <div class="metric-card">
+                    <h4 style="margin: 0 0 5px 0; color: #333;">Typical Range</h4>
+                    <h3 style="margin: 0; color: #667eea;">S${price_stats['q10']}-S${price_stats['q90']}</h3>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Future predictions
+                if future_predictions.get('trend') != 'stable':
+                    trend_color = "green" if future_predictions['trend'] == 'decreasing' else "red"
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <h4 style="margin: 0 0 5px 0; color: #333;">Future Trend</h4>
+                        <h3 style="margin: 0; color: {trend_color};">{future_predictions['trend'].title()}</h3>
+                        <small style="color: #666;">Confidence: {future_predictions.get('confidence', 0.5):.0%}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Booking insights
+                if booking_insights:
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <h4 style="margin: 0 0 5px 0; color: #333;">Best Booking Time</h4>
+                        <p style="margin: 5px 0; color: #667eea; font-weight: bold;">{booking_insights.get('best_day', 'Tuesday')} at {booking_insights.get('best_time', '3PM')}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Price range visualization
+                fig = px.bar(
+                    x=['10th %ile', 'Median', '90th %ile', 'Current'],
+                    y=[price_stats['q10'], price_stats['q50'], price_stats['q90'], cheapest_price],
+                    title="Price Comparison",
+                    color=['lightblue', 'blue', 'darkblue', 'red']
+                )
+                fig.update_layout(showlegend=False, height=300)
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Price history chart
+                if price_history:
+                    trend_df = pd.DataFrame({
+                        'Day': range(len(price_history)),
+                        'Price': price_history
+                    })
+                    fig2 = px.line(trend_df, x='Day', y='Price', title="Price History")
+                    fig2.add_hline(y=cheapest_price, line_dash="dash", line_color="red", 
+                                  annotation_text="Current")
+                    fig2.update_layout(height=250)
+                    st.plotly_chart(fig2, use_container_width=True)
+
+            # Market alerts
+            alerts = get_market_alerts([f"{origin}-{destination}"], budget)
+            if alerts:
+                st.subheader("🚨 Price Alerts")
+                for alert in alerts:
+                    urgency_color = "red" if alert['urgency'] == 'high' else "orange"
+                    st.markdown(f"""
+                    <div class="card" style="border-left: 4px solid {urgency_color}; background: linear-gradient(90deg, #fff5f5 0%, #ffffff 100%);">
+                        <h4 style="margin: 0 0 10px 0; color: {urgency_color};">🚨 {alert['route']}</h4>
+                        <p style="margin: 0; color: #333;">Price dropped to <strong>S${alert['current_price']}</strong></p>
+                        <p style="margin: 5px 0 0 0; color: green; font-weight: bold;">Save S${alert['savings']}!</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Footer sections
+st.markdown('<div class="card" style="background: #f8f9fa; color: #333; margin-top: 30px;">', unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+with col1:
+    with st.expander("💡 Tips for Better Deals"):
+        st.markdown("""
+        - **Book 6-8 weeks ahead** for domestic flights
+        - **Tuesday/Wednesday** departures are often cheaper  
+        - **Clear browser cookies** before booking
+        - **Consider nearby airports** for better prices
+        - **Set price alerts** for your route
+        """)
+
+with col2:
+    with st.expander("🧪 Try These Sample Routes"):
+        st.markdown("""
+        - **JFK → LAX** (New York to Los Angeles)
+        - **LAX → JFK** (Los Angeles to New York)
+        - **JFK → MIA** (New York to Miami)
+        - **LAX → SFO** (Los Angeles to San Francisco)
+        
+        *Real-time data powered by AWS services!*
+        """)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Status indicator
+st.markdown('<div style="text-align: center; margin-top: 20px;">', unsafe_allow_html=True)
+if USE_REAL_DATA:
+    st.success("✅ Connected to real-time flight data via AWS")
+else:
+    st.info("ℹ️ Using mock data - configure AWS credentials for live data")
+st.markdown('</div>', unsafe_allow_html=True)
