@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from amadeus import Client, ResponseError
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +19,11 @@ class RealFlightDataService:
         self.dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
         self.s3 = boto3.client('s3', region_name='us-east-1')
         
+        self.amadeus = Client(
+            client_id=os.getenv("AMADEUS_CLIENT_ID"),
+            client_secret=os.getenv("AMADEUS_CLIENT_SECRET")
+        )
+
     def setup_aws(self):
         """Setup AWS credentials from .env file"""
         os.environ['AWS_ACCESS_KEY_ID'] = os.getenv('AWS_ACCESS_KEY_ID')
@@ -41,10 +47,36 @@ class RealFlightDataService:
             return self._get_cached_flights(origin, destination)
 
     def _fetch_amadeus_flights(self, origin, destination, date):
-        """Fetch from Amadeus API (placeholder - requires API key)"""
-        # This would require Amadeus API credentials
-        # For now, return enhanced mock data with real-time variations
-        return self._generate_realistic_flights(origin, destination, date)
+        try:
+            response = self.amadeus.shopping.flight_offers_search.get(
+                originLocationCode=origin,
+                destinationLocationCode=destination,
+                departureDate=str(date),
+                adults=1,
+                currencyCode="SGD",
+                max=10 
+            )
+            
+            flights = []
+            for offer in response.data:
+                price = offer['price']['total']
+                segments = offer['itineraries'][0]['segments']
+                
+                flights.append({
+                    "airline": segments[0]['carrierCode'],
+                    "price": float(price),
+                    "departure_time": segments[0]['departure']['at'],
+                    "arrival_time": segments[-1]['arrival']['at'],
+                    "duration": offer['itineraries'][0]['duration'],
+                    "stops": len(segments) - 1,
+                    "booking_class": "Economy"  # Simplified
+                })
+            
+            return {"flights": flights}
+    
+        except ResponseError as error:
+            print(f"Amadeus API error: {error}")
+            return None
 
     def _generate_realistic_flights(self, origin, destination, date):
         """Generate realistic flight data with market-based pricing"""
