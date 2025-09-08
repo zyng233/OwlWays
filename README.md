@@ -1,4 +1,4 @@
-# OwlWays AI Travel Assistant 🛫
+# OwlWays AI Travel Assistant 🦉
 
 An intelligent Streamlit web app that helps travelers make smart flight booking decisions using AI-powered price analysis and recommendations.
 
