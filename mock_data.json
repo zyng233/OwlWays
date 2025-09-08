@@ -21,5 +21,74 @@
       {"airline": "Alaska", "price": 267, "departure_time": "17:30", "arrival_time": "01:50", "duration": "5h 20m"}
     ],
     "price_history": [198, 225, 234, 189, 267, 198, 225, 189, 234, 267, 198, 225, 189, 234, 198, 267, 225, 189, 234, 198]
+  },
+  "SIN-JFK": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 1245, "departure_time": "23:55", "arrival_time": "06:00+1", "duration": "18h 5m"},
+      {"airline": "United", "price": 1189, "departure_time": "08:30", "arrival_time": "15:45", "duration": "19h 15m"},
+      {"airline": "Emirates", "price": 1356, "departure_time": "14:20", "arrival_time": "22:30", "duration": "20h 10m"},
+      {"airline": "Qatar Airways", "price": 1298, "departure_time": "02:15", "arrival_time": "10:45", "duration": "20h 30m"}
+    ],
+    "price_history": [1189, 1245, 1356, 1298, 1189, 1245, 1298, 1356, 1189, 1245, 1298, 1189, 1356, 1245, 1298, 1189, 1245, 1356, 1298, 1189]
+  },
+  "JFK-SIN": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 1198, "departure_time": "09:50", "arrival_time": "17:35+1", "duration": "18h 45m"},
+      {"airline": "United", "price": 1234, "departure_time": "22:30", "arrival_time": "05:15+2", "duration": "19h 45m"},
+      {"airline": "Emirates", "price": 1289, "departure_time": "12:15", "arrival_time": "19:30+1", "duration": "20h 15m"}
+    ],
+    "price_history": [1198, 1234, 1289, 1198, 1234, 1289, 1198, 1234, 1289, 1198, 1234, 1289, 1198, 1234, 1289, 1198, 1234, 1289, 1198, 1234]
+  },
+  "SIN-LAX": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 1456, "departure_time": "01:35", "arrival_time": "20:50", "duration": "17h 15m"},
+      {"airline": "United", "price": 1389, "departure_time": "11:20", "arrival_time": "07:45", "duration": "18h 25m"},
+      {"airline": "EVA Air", "price": 1298, "departure_time": "23:45", "arrival_time": "18:30", "duration": "16h 45m"}
+    ],
+    "price_history": [1298, 1389, 1456, 1298, 1389, 1456, 1298, 1389, 1456, 1298, 1389, 1456, 1298, 1389, 1456, 1298, 1389, 1456, 1298, 1389]
+  },
+  "LAX-SIN": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 1398, "departure_time": "22:50", "arrival_time": "06:35+2", "duration": "17h 45m"},
+      {"airline": "United", "price": 1445, "departure_time": "10:15", "arrival_time": "19:30+1", "duration": "18h 15m"},
+      {"airline": "EVA Air", "price": 1356, "departure_time": "00:30", "arrival_time": "07:15+2", "duration": "16h 45m"}
+    ],
+    "price_history": [1356, 1398, 1445, 1356, 1398, 1445, 1356, 1398, 1445, 1356, 1398, 1445, 1356, 1398, 1445, 1356, 1398, 1445, 1356, 1398]
+  },
+  "SIN-LHR": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 1189, "departure_time": "02:25", "arrival_time": "08:20", "duration": "13h 55m"},
+      {"airline": "British Airways", "price": 1245, "departure_time": "11:35", "arrival_time": "17:45", "duration": "14h 10m"},
+      {"airline": "Emirates", "price": 1098, "departure_time": "08:45", "arrival_time": "15:30", "duration": "14h 45m"},
+      {"airline": "Qatar Airways", "price": 1156, "departure_time": "21:15", "arrival_time": "04:30+1", "duration": "15h 15m"}
+    ],
+    "price_history": [1098, 1156, 1189, 1245, 1098, 1156, 1189, 1245, 1098, 1156, 1189, 1245, 1098, 1156, 1189, 1245, 1098, 1156, 1189, 1245]
+  },
+  "LHR-SIN": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 1234, "departure_time": "21:45", "arrival_time": "17:30+1", "duration": "13h 45m"},
+      {"airline": "British Airways", "price": 1189, "departure_time": "12:30", "arrival_time": "08:15+1", "duration": "13h 45m"},
+      {"airline": "Emirates", "price": 1145, "departure_time": "20:10", "arrival_time": "16:45+1", "duration": "14h 35m"}
+    ],
+    "price_history": [1145, 1189, 1234, 1145, 1189, 1234, 1145, 1189, 1234, 1145, 1189, 1234, 1145, 1189, 1234, 1145, 1189, 1234, 1145, 1189]
+  },
+  "SIN-BKK": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 189, "departure_time": "07:30", "arrival_time": "08:45", "duration": "2h 15m"},
+      {"airline": "Thai Airways", "price": 165, "departure_time": "09:15", "arrival_time": "10:30", "duration": "2h 15m"},
+      {"airline": "Scoot", "price": 145, "departure_time": "11:45", "arrival_time": "13:00", "duration": "2h 15m"},
+      {"airline": "AirAsia", "price": 128, "departure_time": "14:20", "arrival_time": "15:35", "duration": "2h 15m"},
+      {"airline": "Jetstar Asia", "price": 156, "departure_time": "17:10", "arrival_time": "18:25", "duration": "2h 15m"}
+    ],
+    "price_history": [128, 145, 156, 165, 189, 128, 145, 156, 165, 189, 128, 145, 156, 165, 189, 128, 145, 156, 165, 189]
+  },
+  "BKK-SIN": {
+    "flights": [
+      {"airline": "Singapore Airlines", "price": 178, "departure_time": "08:00", "arrival_time": "11:15", "duration": "2h 15m"},
+      {"airline": "Thai Airways", "price": 156, "departure_time": "10:30", "arrival_time": "13:45", "duration": "2h 15m"},
+      {"airline": "Scoot", "price": 134, "departure_time": "13:15", "arrival_time": "16:30", "duration": "2h 15m"},
+      {"airline": "AirAsia", "price": 119, "departure_time": "16:45", "arrival_time": "20:00", "duration": "2h 15m"}
+    ],
+    "price_history": [119, 134, 156, 178, 119, 134, 156, 178, 119, 134, 156, 178, 119, 134, 156, 178, 119, 134, 156, 178]
   }
 }

@@ -8,8 +8,9 @@ from real_data_service import RealFlightDataService
 try:
     real_data_service = RealFlightDataService()
     USE_REAL_DATA = True
+    print("✅ Real data service initialized successfully")
 except Exception as e:
-    print(f"Real data service unavailable: {e}")
+    print(f"❌ Real data service unavailable: {e}")
     USE_REAL_DATA = False
     real_data_service = None
 
@@ -22,23 +23,30 @@ def fetch_flights(origin, destination, departure_date, return_date=None):
     """Fetch flights for given route and dates"""
     if USE_REAL_DATA and real_data_service:
         try:
-            # Include return_date if needed
+            print(f"🔍 Fetching real-time flights for {origin} → {destination}")
             result = real_data_service.fetch_live_flights(origin, destination, departure_date)
             
-            # If you want round-trip, you can also fetch return flights
             if return_date:
                 return_result = real_data_service.fetch_live_flights(destination, origin, return_date)
-                # Combine or store separately
-                result["return_flights"] = return_result.get("flights", [])
+                if return_result and return_result.get('flights'):
+                    result["return_flights"] = return_result.get("flights", [])
             
             if result and result.get('flights'):
-                prices = [f['price'] for f in result['flights']]
-                real_data_service.store_price_history(f"{origin}-{destination}", prices)
+                try:
+                    prices = [f['price'] for f in result['flights']]
+                    real_data_service.store_price_history(f"{origin}-{destination}", prices)
+                except:
+                    pass  # Skip price storage if it fails
+                print(f"✅ Found {len(result['flights'])} real-time flights")
                 return result
+            else:
+                print("⚠️ No real-time flights found, using generated data")
+                return real_data_service._generate_realistic_flights(origin, destination, departure_date)
         except Exception as e:
-            print(f"Real data fetch failed: {e}")
+            print(f"❌ Real data fetch failed: {e}")
     
     # Fallback to mock data
+    print(f"📊 Using mock data for {origin} → {destination}")
     data = load_mock_data()
     route_key = f"{origin}-{destination}"
     return_key = f"{destination}-{origin}" if return_date else None
@@ -52,7 +60,6 @@ def fetch_flights(origin, destination, departure_date, return_date=None):
     
     result = {"flights": sorted(flights, key=lambda x: x["price"])[:8]}
     
-    # Add mock return flights if return_date exists
     if return_date and return_key in data:
         return_flights = data[return_key]["flights"].copy()
         date_factor = random.uniform(0.85, 1.15)
