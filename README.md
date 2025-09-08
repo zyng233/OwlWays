@@ -21,12 +21,10 @@ Link to repo: https://github.com/zyng233/OwlWays
    pip install -r requirements.txt
    ```
 
-2. **Configure AWS**
-   ```bash
-   # For Bedrock AI features
+2. **Configure AWS (For Bedrock AI features)**
    aws configure
    - Add to `.env` file:
-   ```
+   ```bash
    AWS_ACCESS_KEY_ID=your_access_key_id_here
    AWS_SECRET_ACCESS_KEY=your_secret_access_key_here
    AWS_DEFAULT_REGION-youe_default_region_here
