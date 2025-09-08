@@ -21,7 +21,7 @@ def google_flights_url(origin, destination, dep_date, ret_date=None):
 
 # Page config
 st.set_page_config(
-    page_title="AI Travel Assistant",
+    page_title="OwlWays",
     page_icon="✈️",
     layout="wide"
 )
@@ -103,7 +103,7 @@ st.markdown("""
 <div class="logo-container">
     <div style="text-align: center;">
         <img src="data:image/png;base64,{}" width="300" style="max-width: 100%; height: auto;">
-        <h2 style="color: #333; margin-top: 15px; font-weight: 300;">AI Travel Assistant</h2>
+        <h2 style="color: #333; margin-top: 15px; font-weight: 300;">OwlWays</h2>
         <p style="color: #666; margin: 10px 0;">Get smart flight recommendations powered by AI</p>
     </div>
 </div>
@@ -114,7 +114,7 @@ st.markdown("""
 <div class="logo-container">
     <div style="text-align: center;">
         <h1 style="color: #333; margin: 0; font-size: 3em;">✈️</h1>
-        <h2 style="color: #333; margin-top: 15px; font-weight: 300;">AI Travel Assistant</h2>
+        <h2 style="color: #333; margin-top: 15px; font-weight: 300;">OwlWays</h2>
         <p style="color: #666; margin: 10px 0;">Get smart flight recommendations powered by AI</p>
     </div>
 </div>
