@@ -209,9 +209,6 @@ if return_date < departure_date:
 with col5:
     budget = st.number_input("Budget (SGD)", min_value=100, max_value=5000, value=800, step=50)
 
-col1, col2, col3 = st.columns([1, 1, 2])
-with col1:
-    flexibility = st.slider("Date Flexibility (± days)", 0, 7, 3)
 with col3:
     search_button = st.button("🔍 Search Flights", type="primary", use_container_width=True)
 
