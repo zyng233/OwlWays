@@ -19,25 +19,39 @@ def load_mock_data():
     with open('mock_data.json', 'r') as f:
         return json.load(f)
 
-def fetch_flights(origin, destination, departure_date, return_date=None):
-    """Fetch flights for given route and dates"""
+def fetch_flights(origin, destination, departure_date, return_date=None, flexibility=0):
+    """Fetch flights for given route and dates with flexibility"""
     if USE_REAL_DATA and real_data_service:
         try:
-            print(f"🔍 Fetching real-time flights for {origin} → {destination}")
-            result = real_data_service.fetch_live_flights(origin, destination, departure_date)
+            print(f"🔍 Fetching real-time flights for {origin} → {destination} (+{flexibility} days)")
             
-            if return_date:
-                return_result = real_data_service.fetch_live_flights(destination, origin, return_date)
-                if return_result and return_result.get('flights'):
-                    result["return_flights"] = return_result.get("flights", [])
+            all_flights = []
+            # Search from departure date onwards
+            for day_offset in range(0, flexibility + 1):
+                search_date = departure_date + timedelta(days=day_offset)
+                result = real_data_service.fetch_live_flights(origin, destination, search_date)
+                if result and result.get('flights'):
+                    # Add search date to each flight
+                    for flight in result['flights']:
+                        flight['search_date'] = search_date.strftime('%Y-%m-%d')
+                    all_flights.extend(result['flights'])
             
-            if result and result.get('flights'):
+            if all_flights:
+                # Sort by price and take best options
+                all_flights.sort(key=lambda x: x['price'])
+                result = {"flights": all_flights[:10]}
+                
+                if return_date:
+                    return_result = real_data_service.fetch_live_flights(destination, origin, return_date)
+                    if return_result and return_result.get('flights'):
+                        result["return_flights"] = return_result.get("flights", [])
+                
                 try:
                     prices = [f['price'] for f in result['flights']]
                     real_data_service.store_price_history(f"{origin}-{destination}", prices)
                 except:
-                    pass  # Skip price storage if it fails
-                print(f"✅ Found {len(result['flights'])} real-time flights")
+                    pass
+                print(f"✅ Found {len(result['flights'])} flexible flights")
                 return result
             else:
                 print("⚠️ No real-time flights found, using generated data")

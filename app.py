@@ -197,16 +197,19 @@ with col3:
     )
 with col4:
     return_date = st.date_input(
-        "Return Date",
-        value=departure_date + timedelta(days=7),
+        "Return Date (Optional)",
+        value=None,
         min_value=departure_date
     )
 
-if return_date < departure_date:
+if return_date and return_date < departure_date:
     st.error("Return date cannot be before departure date.")
 with col5:
     budget = st.number_input("Budget (SGD)", min_value=100, max_value=5000, value=800, step=50)
 
+col1, col2, col3 = st.columns([1, 1, 2])
+with col1:
+    flexibility = st.slider("Date Flexibility (+ days)", 0, 7, 3)
 with col3:
     search_button = st.button("🔍 Search Flights", type="primary", use_container_width=True)
 
@@ -215,7 +218,7 @@ if search_button and origin and destination:
     st.markdown('<div class="results-container">', unsafe_allow_html=True)
     with st.spinner("Analyzing flights and market data..."):
         # Fetch data
-        flight_data = fetch_flights(origin, destination, departure_date, return_date)
+        flight_data = fetch_flights(origin, destination, departure_date, return_date, flexibility)
         price_history = get_price_history(origin, destination)
         
         if not flight_data['flights']:
@@ -270,13 +273,14 @@ if search_button and origin and destination:
                 
                 for idx, flight in enumerate(flight_data['flights'][:5]):
                     book_link = google_flights_url(origin, destination, departure_date, return_date)
+                    flight_date = flight.get('search_date', departure_date.strftime('%Y-%m-%d'))
                     st.markdown(f"""
                     <div class="flight-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div style="flex: 2; min-width: 200px;">
                                 <h4 style="margin: 0; color: #333;">{flight.get('airline','')}</h4>
                                 <p style="margin: 5px 0; color: #666;">{flight.get('departure_time','')} → {flight.get('arrival_time','')}</p>
-                                <small style="color: #888;">Duration: {flight.get('duration','')}</small>
+                                <small style="color: #888;">Date: {flight_date} | Duration: {flight.get('duration','')}</small>
                             </div>
                             <div style="flex: 1; text-align: center; min-width: 120px;">
                                 <h3 style="margin: 0; color: {'green' if flight['price'] <= budget else 'red'};">S${int(flight['price'])}</h3>
@@ -295,13 +299,14 @@ if search_button and origin and destination:
                     st.subheader(f"Return Flights: {destination} → {origin}")
                     for r_idx, r in enumerate(flight_data['return_flights'][:5]):
                         book_link = google_flights_url(origin, destination, departure_date, return_date)
+                        return_flight_date = r.get('search_date', return_date.strftime('%Y-%m-%d') if return_date else '')
                         st.markdown(f"""
                         <div class="flight-card">
                             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
                                 <div style="flex:2;min-width:200px;">
                                     <h4 style="margin:0;color:#333;">{r.get('airline','')}</h4>
                                     <p style="margin:5px 0;color:#666;">{r.get('departure_time','')} → {r.get('arrival_time','')}</p>
-                                    <small style="color:#888;">Duration: {r.get('duration','')}</small>
+                                    <small style="color:#888;">Date: {return_flight_date} | Duration: {r.get('duration','')}</small>
                                 </div>
                                 <div style="flex:1;text-align:center;min-width:120px;">
                                     <h3 style="margin:0;color:{'green' if r['price'] <= budget else 'red'};">S${int(r['price'])}</h3>
