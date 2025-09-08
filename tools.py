@@ -18,14 +18,20 @@ def load_mock_data():
     with open('mock_data.json', 'r') as f:
         return json.load(f)
 
-def fetch_flights(origin, destination, date):
-    """Fetch flights for given route and date"""
+def fetch_flights(origin, destination, departure_date, return_date=None):
+    """Fetch flights for given route and dates"""
     if USE_REAL_DATA and real_data_service:
         try:
-            # Try real data first
-            result = real_data_service.fetch_live_flights(origin, destination, date)
+            # Include return_date if needed
+            result = real_data_service.fetch_live_flights(origin, destination, departure_date)
+            
+            # If you want round-trip, you can also fetch return flights
+            if return_date:
+                return_result = real_data_service.fetch_live_flights(destination, origin, return_date)
+                # Combine or store separately
+                result["return_flights"] = return_result.get("flights", [])
+            
             if result and result.get('flights'):
-                # Store price data for history
                 prices = [f['price'] for f in result['flights']]
                 real_data_service.store_price_history(f"{origin}-{destination}", prices)
                 return result
@@ -35,18 +41,26 @@ def fetch_flights(origin, destination, date):
     # Fallback to mock data
     data = load_mock_data()
     route_key = f"{origin}-{destination}"
+    return_key = f"{destination}-{origin}" if return_date else None
     
-    if route_key not in data:
-        return {"flights": [], "message": f"No flights found for {route_key}"}
+    flights = []
+    if route_key in data:
+        flights = data[route_key]["flights"].copy()
+        date_factor = random.uniform(0.85, 1.15)
+        for flight in flights:
+            flight["price"] = int(flight["price"] * date_factor)
     
-    # Add some price variation based on date
-    flights = data[route_key]["flights"].copy()
-    date_factor = random.uniform(0.85, 1.15)  # ±15% price variation
+    result = {"flights": sorted(flights, key=lambda x: x["price"])[:8]}
     
-    for flight in flights:
-        flight["price"] = int(flight["price"] * date_factor)
+    # Add mock return flights if return_date exists
+    if return_date and return_key in data:
+        return_flights = data[return_key]["flights"].copy()
+        date_factor = random.uniform(0.85, 1.15)
+        for flight in return_flights:
+            flight["price"] = int(flight["price"] * date_factor)
+        result["return_flights"] = sorted(return_flights, key=lambda x: x["price"])[:8]
     
-    return {"flights": sorted(flights, key=lambda x: x["price"])[:8]}
+    return result
 
 def predict_price_range(price_history, current_price=None):
     """Predict price range using historical data"""

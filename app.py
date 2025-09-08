@@ -8,6 +8,17 @@ import os
 from tools import fetch_flights, predict_price_range, decide_recommendation, get_price_history, get_future_predictions, get_market_alerts, get_booking_insights, USE_REAL_DATA
 from agents import BedrockAgent
 
+def google_flights_url(origin, destination, dep_date, ret_date=None):
+    """
+    Build a Google Flights search link using the ?q= pattern.
+    This opens the search page with route + date pre-filled.
+    """
+    dep = str(dep_date)
+    if ret_date:
+        return f"https://www.google.com/travel/flights?q={origin}+{destination}+{dep}+return+{ret_date}"
+    else:
+        return f"https://www.google.com/travel/flights?q={origin}+{destination}+{dep}"
+
 # Page config
 st.set_page_config(
     page_title="AI Travel Assistant",
@@ -136,7 +147,7 @@ airports = {
     "AKL - Auckland": "AKL",
     "FRA - Frankfurt": "FRA",
     "AMS - Amsterdam": "AMS",
-    "ZUR - Zurich": "ZUR",
+    "ZUR - Zurich": "ZRH",
     "MUC - Munich": "MUC",
     "FCO - Rome": "FCO",
     "MAD - Madrid": "MAD",
@@ -170,12 +181,15 @@ airports = {
     "CUN - Cancún": "CUN"
 }
 
-col1, col2, col3, col4 = st.columns(4)
+# Sort by airport name (the full string like "SIN - Singapore Changi")
+airports_sorted = dict(sorted(airports.items(), key=lambda x: x[0]))
+
+col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    origin_selection = st.selectbox("From", list(airports.keys()), index=0)
+    origin_selection = st.selectbox("From", list(airports_sorted.keys()), index=0)
     origin = airports[origin_selection]
 with col2:
-    destination_selection = st.selectbox("To", list(airports.keys()), index=1)
+    destination_selection = st.selectbox("To", list(airports_sorted.keys()), index=1)
     destination = airports[destination_selection]
 with col3:
     departure_date = st.date_input(
@@ -184,6 +198,15 @@ with col3:
         min_value=datetime.now().date()
     )
 with col4:
+    return_date = st.date_input(
+        "Return Date",
+        value=departure_date + timedelta(days=7),
+        min_value=departure_date
+    )
+
+if return_date < departure_date:
+    st.error("Return date cannot be before departure date.")
+with col5:
     budget = st.number_input("Budget (SGD)", min_value=100, max_value=5000, value=800, step=50)
 
 col1, col2, col3 = st.columns([1, 1, 2])
@@ -199,7 +222,7 @@ if search_button and origin and destination:
     st.markdown('<div class="results-container">', unsafe_allow_html=True)
     with st.spinner("Analyzing flights and market data..."):
         # Fetch data
-        flight_data = fetch_flights(origin, destination, departure_date)
+        flight_data = fetch_flights(origin, destination, departure_date, return_date)
         price_history = get_price_history(origin, destination)
         
         if not flight_data['flights']:
@@ -250,28 +273,54 @@ if search_button and origin and destination:
             
             with col1:
                 # Flight results
-                st.subheader("Available Flights")
+                st.subheader(f"Available Flights: {origin} → {destination}")
                 
                 for idx, flight in enumerate(flight_data['flights'][:5]):
+                    book_link = google_flights_url(origin, destination, departure_date, return_date)
                     st.markdown(f"""
                     <div class="flight-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div style="flex: 2; min-width: 200px;">
-                                <h4 style="margin: 0; color: #333;">{flight['airline']}</h4>
-                                <p style="margin: 5px 0; color: #666;">{flight['departure_time']} → {flight['arrival_time']}</p>
-                                <small style="color: #888;">Duration: {flight['duration']}</small>
+                                <h4 style="margin: 0; color: #333;">{flight.get('airline','')}</h4>
+                                <p style="margin: 5px 0; color: #666;">{flight.get('departure_time','')} → {flight.get('arrival_time','')}</p>
+                                <small style="color: #888;">Duration: {flight.get('duration','')}</small>
                             </div>
                             <div style="flex: 1; text-align: center; min-width: 120px;">
-                                <h3 style="margin: 0; color: {'green' if flight['price'] <= budget else 'red'};">S${flight['price']}</h3>
+                                <h3 style="margin: 0; color: {'green' if flight['price'] <= budget else 'red'};">S${int(flight['price'])}</h3>
                                 <span style="font-size: 12px; color: #666;">{'Great Deal!' if flight['price'] <= price_stats['q10'] else 'Good Price' if flight['price'] <= price_stats['q50'] else 'High Price'}</span>
                             </div>
                             <div style="flex: 0 0 auto; min-width: 80px;">
-                                <a href="https://www.google.com/flights?q={origin}+{destination}+{departure_date}" target="_blank" 
+                                <a href="{book_link}" target="_blank" 
                                    style="background: #667eea; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px;">Book</a>
                             </div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
+
+                # --- Return flights list (if available) ---
+                if "return_flights" in flight_data and flight_data["return_flights"]:
+                    st.subheader(f"Return Flights: {destination} → {origin}")
+                    for r_idx, r in enumerate(flight_data['return_flights'][:5]):
+                        book_link = google_flights_url(origin, destination, departure_date, return_date)
+                        st.markdown(f"""
+                        <div class="flight-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                                <div style="flex:2;min-width:200px;">
+                                    <h4 style="margin:0;color:#333;">{r.get('airline','')}</h4>
+                                    <p style="margin:5px 0;color:#666;">{r.get('departure_time','')} → {r.get('arrival_time','')}</p>
+                                    <small style="color:#888;">Duration: {r.get('duration','')}</small>
+                                </div>
+                                <div style="flex:1;text-align:center;min-width:120px;">
+                                    <h3 style="margin:0;color:{'green' if r['price'] <= budget else 'red'};">S${int(r['price'])}</h3>
+                                </div>
+                                <div style="flex:0 0 auto;min-width:80px;">
+                                    <a href="{book_link}" target="_blank"
+                                       style="background:#667eea;color:white;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;">Book</a>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                # --- end Return flights list ---
             
             with col2:
                 # Price analysis
